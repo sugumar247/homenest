@@ -1,0 +1,284 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+    <h1 class="main-heading" style="color: white;">Reports & Analytics</h1>
+    <p class="description" style="color: white;">View detailed reports and analytics here!</p>
+
+    <!-- Reset Cache Button -->
+    <div class="reset-cache-button">
+        <form action="{% url 'reset_reports_cache' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" id="refreshButton" class="action-btn">Refresh data</button>
+        </form>
+    </div>
+
+    <button id="generatePDFButton" class="action-btn">
+        Download Report
+    </button>
+
+    <!-- Sales Performance -->
+    <div class="info-box">
+        <h2 class="section-title">📈 Sales Performance</h2>
+        <ul class="list">
+            <li><strong>Total Sales Revenue:</strong> ${{ total_sales }}</li>
+            <li><strong>Total Units Sold:</strong> {{ total_units_sold }}</li>
+            <li><strong>Average Discount Applied:</strong> {{ avg_discount|floatformat:2 }}%</li>
+        </ul>
+    </div>
+
+    <!-- Best Selling Products -->
+    <div class="info-box">
+        <h2 class="section-title">🏆 Best Selling Products</h2>
+        <ul class="list">
+            {% for product, quantity in best_selling_products.items %}
+            <li>{{ product }} - <strong>{{ quantity }} units</strong></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Top Revenue Products -->
+    <div class="info-box">
+        <h2 class="section-title">💰 Top Revenue Generating Products</h2>
+        <ul class="list">
+            {% for product, revenue in top_revenue_products.items %}
+            <li>{{ product }} - <strong>${{ revenue }}</strong></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Low Stock Products -->
+    <div class="info-box alert-box">
+        <h2 class="section-title">⚠️ Low Stock Products (Needs Restocking)</h2>
+        <ul class="list">
+            {% for product in low_stock_products %}
+            <li>{{ product.product_name }} - <strong>Stock Left: {{ product.stock }}</strong></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Sales Trends -->
+    <div class="info-box">
+        <h2 class="section-title">📊 Sales Trends</h2>
+        <ul class="list">
+            <li><strong>Last Week Sales:</strong> {{ sales_last_week }} units</li>
+            <li><strong>Last Month Sales:</strong> {{ sales_last_month }} units</li>
+            <li><strong>Last 3 Months Sales:</strong> {{ sales_last_3_months }} units</li>
+        </ul>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="graph-container">
+        <canvas id="salesTrendChart"></canvas>
+    </div>
+
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+    document.getElementById("refreshButton").addEventListener("click", function () {
+        window.location.href = window.location.pathname + "?refresh=true";
+    });
+
+    var ctx = document.getElementById('salesTrendChart').getContext('2d');
+    var salesTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ["Last Week", "Last Month", "Last 3 Months"],
+            datasets: [{
+                label: 'Sales Trend (Units Sold)',
+                data: [{{ sales_last_week }}, {{ sales_last_month }}, {{ sales_last_3_months }}],
+    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2
+            }]
+        },
+    options: {
+        responsive: true,
+            scales: {
+            y: { beginAtZero: true }
+        }
+    }
+    });
+
+    document.getElementById("generatePDFButton").addEventListener("click", function () {
+        // Create wrapper for all content
+        const wrapper = document.createElement("div");
+        wrapper.style.padding = "20px";
+        wrapper.style.fontSize = "14px";
+
+        // Add title at the top
+        const title = document.createElement("h1");
+        title.textContent = "Report Analysis";
+        title.style.textAlign = "center";
+        title.style.marginBottom = "30px";
+        wrapper.appendChild(title);
+
+        // Select starting element after "Sales Performance"
+        const startElement = document.querySelector(".info-box");
+        let current = startElement;
+        while (current && !current.classList.contains("graph-container")) {
+            wrapper.appendChild(current.cloneNode(true));
+            current = current.nextElementSibling;
+        }
+
+        // Convert canvas chart to image
+        const chartCanvas = document.querySelector(".graph-container canvas");
+        if (chartCanvas) {
+            const imgData = chartCanvas.toDataURL("image/png");
+            const chartImage = document.createElement("img");
+            chartImage.src = imgData;
+            chartImage.style.width = "100%";
+            chartImage.style.marginTop = "20px";
+            wrapper.appendChild(chartImage);
+        }
+
+        // Generate PDF
+        html2pdf(wrapper, {
+            margin: 0.5,
+            filename: 'sales_report.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        });
+    });
+
+</script>
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #202223;
+        color: #2c3e50;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* General Styling */
+    .wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Arial', sans-serif;
+    }
+
+    /* Titles & Descriptions */
+    .main-heading {
+        font-size: 2.2rem;
+        text-align: center;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .description {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    /* Action Button */
+    .action-btn {
+        padding: 12px 25px;
+        display: block;
+        margin: 20px auto;
+        font-size: 1rem;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        height: 43px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        background-color: #c0392b;
+    }
+
+    /* Info Box */
+    .info-box {
+        background: #fff;
+        padding: 20px;
+        margin: 15px 0;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .info-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        color: #222;
+        margin-bottom: 10px;
+    }
+
+    /* Alert Box for Low Stock */
+    .alert-box {
+        border-left: 6px solid #dc3545;
+        background: #ffe5e5;
+    }
+
+    /* List Styling */
+    .list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .list li {
+        padding: 10px;
+        font-size: 1rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .list li:last-child {
+        border-bottom: none;
+    }
+
+    /* Graph Container */
+    .graph-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .graph-container canvas {
+        max-width: 100%;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .wrapper {
+            padding: 15px;
+        }
+
+        .main-heading {
+            font-size: 1.8rem;
+        }
+
+        .description {
+            font-size: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+        }
+    }
+</style>
+{% endblock %}

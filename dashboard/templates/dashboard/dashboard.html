@@ -1,0 +1,13 @@
+{%load static%}
+{% extends 'dashboard/base.html' %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'dashboard/styles.css' %}">
+</head>
+<body>
+    <h1>Welcome to the Admin Dashboard</h1>
+    <a href="{% url 'admin_logout' %}">Logout</a>
+</body>
+</html>

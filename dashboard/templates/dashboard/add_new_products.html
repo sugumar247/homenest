@@ -1,0 +1,285 @@
+<!-- templates/dashboard/add_new_products.html -->
+{% extends 'dashboard/base.html' %}
+{% block title %}Add New Products{% endblock title %}
+
+{% block content %}
+<h1 style="text-align: center; margin-bottom: 20px; color: white;">Add New Products</h1>
+<p style="color: white; margin-left: 10%;">Add new products to your inventory!</p>
+
+<!-- Display success or error messages -->
+{% if messages %}
+<ul class="message-container">
+    {% for message in messages %}
+    <li style="color: green;" class="message">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-columns">
+
+        <div class="form-column">
+            <label for="product_name">Product Name:</label>
+            <input type="text" id="product_name" name="product_name" required>
+
+            <label for="category_name">Category:</label>
+            <input type="text" id="category_name" name="category_name" required>
+
+            <label for="subcategory">Subcategory:</label>
+            <input type="text" id="subcategory" name="subcategory" required>
+
+            <label for="current_stock_level">Stock Level:</label>
+            <input type="number" id="current_stock_level" name="current_stock_level" required>
+
+            <label for="discount">Discount (0 to 1):</label>
+            <input type="number" id="discount" name="discount" step="0.01" required>
+        </div>
+
+        <div class="form-column">
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" required>
+
+            <label for="image_url">Image URL:</label>
+            <input type="url" id="image_url" name="image_url" required>
+
+            <label for="product_key">Product Key:</label>
+            <input type="text" id="product_key" name="product_key" required>
+
+            <label for="model_file">3D Model File (GLB/FBX/OBJ):</label>
+            <div class="drop-zone" id="drop-zone">
+                <span class="drop-zone-text">Drag & drop a file here or click to upload</span>
+                <input type="file" name="model_file" id="model_file" class="file-input" accept=".glb,.fbx,.obj"
+                    required>
+                <div id="file-error" style="color: red; margin-top: 5px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <br>
+    <button type="submit">Add Product</button>
+</form>
+
+<script>
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("model_file");
+    const errorDiv = document.getElementById('file-error');
+    const allowedExtensions = ['.glb', '.fbx', '.obj'];
+
+    // Click to open file dialog
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    // Highlight on dragover
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.backgroundColor = "#d6ecfb";
+        dropZone.style.borderColor = "#2980b9";
+    });
+
+    // Reset on dragleave
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.style.backgroundColor = "#f9f9f9";
+        dropZone.style.borderColor = "#3498db";
+    });
+    
+    dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.backgroundColor = "#f9f9f9";
+    dropZone.style.borderColor = "#3498db";
+
+    if (e.dataTransfer.files.length) {
+        const droppedFile = e.dataTransfer.files[0];
+        const extension = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
+
+        if (!allowedExtensions.includes(extension)) {
+            errorDiv.textContent = "Only .glb, .fbx, and .obj files are allowed.";
+            fileInput.value = '';
+            dropZone.querySelector(".drop-zone-text").textContent = "Drag & drop a file here or click to upload";
+            dropZone.classList.remove("file-uploaded");
+        } else {
+            errorDiv.textContent = "";
+            fileInput.files = e.dataTransfer.files;
+            dropZone.querySelector(".drop-zone-text").textContent = droppedFile.name;
+            dropZone.classList.add("file-uploaded");
+        }
+    }
+});
+
+fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) {
+        const file = fileInput.files[0];
+        const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+        if (!allowedExtensions.includes(extension)) {
+            errorDiv.textContent = "Only .glb, .fbx, and .obj files are allowed.";
+            fileInput.value = '';
+            dropZone.querySelector(".drop-zone-text").textContent = "Drag & drop a file here or click to upload";
+            dropZone.classList.remove("file-uploaded");
+        } else {
+            errorDiv.textContent = "";
+            dropZone.querySelector(".drop-zone-text").textContent = file.name;
+            dropZone.classList.add("file-uploaded");
+        }
+    }
+});
+
+</script>
+
+
+<style>
+    /* CSS for Add New Products Form */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #202223;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+    }
+
+    form {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        /* width: 100%; */
+        padding: 30px;
+    }
+
+    form label {
+        display: block;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    form input[type="text"],
+    form input[type="number"],
+    form input[type="url"] {
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+
+    form input[type="text"]:focus,
+    form input[type="number"]:focus,
+    form input[type="url"]:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    form button[type="submit"] {
+        background-color: #2b8bf3;
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        width: 100%;
+    }
+
+    form button[type="submit"]:hover {
+        background-color: #0056b3;
+    }
+
+    .message-container {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .message {
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: green;
+    }
+
+    @media (max-width: 600px) {
+        form {
+            padding: 20px 15px 20px 15px;
+            max-width: 90%;
+            margin-left: 10%;
+            margin-right: auto;
+            display: block;
+        }
+    }
+
+    /* Drag-and-drop upload style */
+    .drop-zone {
+        position: relative;
+        width: 80%;
+        padding: 30px;
+        /* padding-right: 40px; */
+        border: 2px dashed #3498db;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+        text-align: center;
+        transition: 0.3s ease;
+        cursor: pointer;
+        color: #555;
+        font-size: 16px;
+        color: #777;
+        white-space: nowrap;
+        /* Prevent text from wrapping */
+        overflow: hidden;
+        /* Hide overflowed text */
+        text-overflow: ellipsis;
+        /* Show ... when text is too long */
+        display: block;
+        max-width: 100%;
+    }
+
+    .drop-zone:hover {
+        background-color: #eef7fd;
+    }
+
+    .drop-zone-text {
+        font-size: 16px;
+        color: #777;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .form-columns {
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .form-column {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    /* Optional: Reduce form width if needed */
+    form {
+        max-width: 800px;
+    }
+
+    /* Add this at the end of your <style> */
+.drop-zone.file-uploaded {
+    background-color: #eafaf1; /* Light green background */
+    border-color: #2ecc71; /* Green border */
+    color: #1e8449; /* File name color */
+}
+
+.drop-zone.file-uploaded .drop-zone-text {
+    font-weight: bold;
+    color: #1e8449;
+}
+
+</style>
+{% endblock %}

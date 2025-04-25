@@ -1,0 +1,407 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Stock management{% endblock %}
+{% block content %}
+<div class="stock-container">
+    <div>
+        <h1 class="stock-title" style="color: white;">Stock Management</h1>
+
+        <div class="stock-search-container">
+            <div class="search-wrapper">
+                <div class="search-flex">
+                    <input type="text" id="stock-search-bar" class="stock-search-bar" placeholder="Search for product"
+                        onkeydown="checkEnter(event)" />
+                    <button id="stock-search-button" class="stock-search-button"
+                        onclick="searchProduct()">Search</button>
+
+                    <form action="{% url 'reset_product_suggestion_cache' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="stock-refresh-button">Refresh Data</button>
+                    </form>
+                </div>
+                <ul id="suggestion-box" class="suggestion-box"></ul>
+            </div>
+        </div>
+
+        <p id="stock-message" style="color: red; display: none;">Product not present</p>
+
+        <!-- Product Details -->
+        <div id="stock-product-details" class="stock-product-details" style="display:none;">
+            <h3>Product: <span id="stock-product-name"></span></h3>
+            <p>Current Stock Level: <span id="stock-current-level"></span></p>
+
+            <!-- Update Stock -->
+            <div class="stock-update-section">
+                <label for="stock-update-input">Update Stock:</label>
+                <input type="number" id="stock-update-input" value="0" class="stock-input" />
+                <button class="stock-update-button" onclick="updateStock()">Update Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recently Updated Stocks -->
+    <div class="stock-recent-updates">
+        <h2>Recently Updated Stocks</h2>
+        <ul id="stock-recent-list" class="stock-recent-list">
+            <li>Loading...</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    function checkEnter(event) {
+        if (event.key === 'Enter') {
+            searchProduct();
+        }
+    }
+
+    function searchProduct() {
+        const query = document.getElementById('stock-search-bar').value;
+        const messageBox = document.getElementById('stock-message');
+
+        if (query.trim() !== '') {
+            const encodedQuery = encodeURIComponent(query);
+            fetch(`/search_product/?query=${encodedQuery}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        messageBox.style.display = 'none'; // hide error message
+                        document.getElementById('stock-product-details').style.display = 'block';
+                        document.getElementById('stock-product-name').innerText = data.product.product_name;
+                        document.getElementById('stock-current-level').innerText = data.product.current_stock_level;
+                    } else {
+                        messageBox.style.display = 'block';
+                        document.getElementById('stock-product-details').style.display = 'none';
+                    }
+                });
+        }
+    }
+
+    function updateStock() {
+        const query = encodeURIComponent(document.getElementById('stock-search-bar').value);
+        const updatedStock = document.getElementById('stock-update-input').value;
+        fetch(`/update_stock/?query=${query}&updated_stock=${updatedStock}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Stock updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Failed to update stock.');
+                }
+            });
+    }
+
+    function fetchRecentUpdates() {
+        fetch(`/recent_updates/`)
+            .then(response => response.json())
+            .then(data => {
+                const recentUpdatesList = document.getElementById('stock-recent-list');
+                recentUpdatesList.innerHTML = '';
+                data.recent_products.forEach(product => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${product.product_name}: ${product.previous_stock_level} → ${product.current_stock_level}`;
+                    recentUpdatesList.appendChild(listItem);
+                });
+            }).catch(error => console.error('Error:', error));
+    }
+
+    window.onload = fetchRecentUpdates;
+    const searchBar = document.getElementById('stock-search-bar');
+    const suggestionBox = document.getElementById('suggestion-box');
+
+    searchBar.addEventListener('input', () => {
+        const query = searchBar.value.trim();
+        if (query.length === 0) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        fetch(`/product_suggestions/?term=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(suggestions => {
+                suggestionBox.innerHTML = '';
+                if (suggestions.length === 0) {
+                    suggestionBox.style.display = 'none';
+                    return;
+                }
+                suggestions.forEach(suggestion => {
+                    const li = document.createElement('li');
+
+                    // Highlight the matching part
+                    const regex = new RegExp(`(${query})`, 'i'); // case-insensitive match
+                    const highlightedText = suggestion.replace(regex, '<span class="highlight">$1</span>');
+
+                    li.innerHTML = highlightedText;
+                    li.addEventListener('click', () => {
+                        searchBar.value = suggestion;
+                        suggestionBox.style.display = 'none';
+                        searchProduct();
+                    });
+                    suggestionBox.appendChild(li);
+                });
+
+                suggestionBox.style.display = 'block';
+            });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!suggestionBox.contains(e.target) && e.target !== searchBar) {
+            suggestionBox.style.display = 'none';
+        }
+    });
+</script>
+
+
+<style>
+    /* Global styles */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #202223;
+        color: #333;
+    }
+
+    .search-flex {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Container */
+    .stock-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 40px;
+        padding: 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Title */
+    .stock-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 30px;
+    }
+
+    /* Search Section */
+    .stock-search-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .stock-search-bar {
+        flex: 1;
+        padding: 12px;
+        font-size: 1rem;
+        border-radius: 6px;
+        border: 1px solid #ccd6dd;
+        transition: box-shadow 0.2s;
+    }
+
+    .stock-search-bar:focus {
+        outline: none;
+        box-shadow: 0 0 4px rgba(41, 128, 185, 0.4);
+    }
+
+    .stock-search-button {
+        padding: 12px 20px;
+        font-size: 1rem;
+        background-color: #2b8bf3;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .stock-search-button:hover {
+        background-color: #0056b3;
+    }
+
+    /* Product Details */
+    .stock-product-details {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        margin-top: 20px;
+        max-width: 600px;
+    }
+
+    /* Update Section */
+    .stock-update-section {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .stock-input {
+        padding: 10px;
+        font-size: 1rem;
+        width: 100px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    .stock-update-button {
+        padding: 10px 16px;
+        font-size: 1rem;
+        background-color: #27ae60;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .stock-update-button:hover {
+        background-color: #219150;
+    }
+
+    /* Recent Updates */
+    .stock-recent-updates {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        flex-grow: 1;
+        min-width: 300px;
+    }
+
+    .stock-recent-updates h2 {
+        margin-bottom: 15px;
+        font-size: 1.4rem;
+    }
+
+    .stock-recent-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .stock-recent-list li {
+        padding: 10px 0;
+        border-bottom: 1px solid #eaecef;
+        font-size: 1rem;
+        color: #444;
+    }
+
+    .stock-recent-list li:last-child {
+        border-bottom: none;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 768px) {
+        .stock-container {
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .stock-update-section {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .stock-search-container {
+            flex-direction: column;
+        }
+    }
+
+    .search-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .suggestion-box {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        list-style: none;
+        padding: 0;
+        margin: 2px 0 0 0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        border-radius: 4px;
+        display: none;
+
+        /* Scrollable settings */
+        max-height: 200px;
+        /* Adjust height as needed */
+        overflow-y: auto;
+    }
+
+    .suggestion-box li .highlight {
+        background-color: #96c9ff;
+        font-weight: bold;
+    }
+
+
+    .suggestion-box li {
+        padding: 10px;
+        cursor: pointer;
+    }
+
+    .suggestion-box li:hover {
+        background-color: #f0f0f0;
+    }
+
+    .stock-refresh-button {
+        padding: 0px 20px;
+        font-size: 1rem;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        height: 43px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .stock-refresh-button:hover {
+        background-color: #c0392b;
+    }
+
+    /* Mobile specific styles for search and refresh buttons */
+    @media (max-width: 768px) {
+        .search-flex {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .stock-search-bar {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .stock-search-button,
+        .stock-refresh-button {
+            width: 100%;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+            padding: 12px 0;
+        }
+
+        .stock-recent-updates {
+            max-width: 100%;
+            width: 100%;
+            padding-left: 10px;
+            padding-right: 10px;
+            box-sizing: border-box;
+        }
+    }
+</style>
+
+{% endblock %}

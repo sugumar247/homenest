@@ -1,0 +1,254 @@
+<!-- templates/dashboard/stock_prediction.html -->
+{% extends 'dashboard/base.html' %}
+{%load static%}
+{% block title %}Stock prediction{% endblock title %}
+
+{% block content %}
+<h1 style="color: white;">Stock Prediction</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <form method="post" style="display: flex; gap: 10px;">
+        {% csrf_token %}
+        <button type="submit" name="prediction_type" value="week" class="prediction-btn">
+            <span class="btn-text">Predict for Next Week</span>
+            <span class="loading-spinner" style="display: none;"></span>
+        </button>
+        <button type="submit" name="prediction_type" value="month" class="prediction-btn">
+            <span class="btn-text">Predict for Next Month</span>
+            <span class="loading-spinner" style="display: none;"></span>
+        </button>
+    </form>
+
+    <form action="{% url 'reset_prediction_cache' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" id="refreshButton" class="action-btn">Reset Cache</button>
+    </form>
+</div>
+
+<div class="prediction-section">
+    <h2>Stock Prediction Results </h2>
+
+    {% if predictions %}
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" name="add_stock" class="prediction-btn">Add Stocks</button>
+    </form>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <table>
+        <tr>
+            <th>Product</th>
+            <th>Predicted Stock Needed</th>
+        </tr>
+        {% for product, prediction in predictions.items %}
+        <tr>
+            <td>{{ product }}</td>
+            <td>{{ prediction }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>No predictions yet. Click a button to predict stock.</p>
+    {% endif %}
+</div>
+
+{% if predictions %}
+<script>
+    localStorage.removeItem('predictionInProgress');
+    localStorage.removeItem('predictionType');
+</script>
+{% endif %}
+
+<script>
+   
+    // On page load, check if there's a prediction in progress
+    window.addEventListener('load', function () {
+        const predictionInProgress = localStorage.getItem('predictionInProgress');
+        const predictionType = localStorage.getItem('predictionType');
+
+        if (predictionInProgress === 'true' && predictionType) {
+            const button = document.querySelector(`button[value="${predictionType}"]`);
+            const btnText = button.querySelector('.btn-text');
+            const loadingSpinner = button.querySelector('.loading-spinner');
+
+            if (button && btnText && loadingSpinner) {
+                btnText.style.display = 'none';
+                loadingSpinner.style.display = 'inline-block';
+                document.querySelectorAll('.prediction-btn').forEach(btn => btn.disabled = true);
+            }
+        }
+    });
+
+    // Attach event listeners to all prediction buttons
+    document.querySelectorAll('.prediction-btn').forEach(button => {
+        const btnText = button.querySelector('.btn-text');
+        const loadingSpinner = button.querySelector('.loading-spinner');
+
+        if (btnText && loadingSpinner) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+
+                // Save prediction type to localStorage
+                localStorage.setItem('predictionInProgress', 'true');
+                localStorage.setItem('predictionType', this.value);
+
+
+                setTimeout(() => {
+                    localStorage.removeItem('predictionInProgress');
+                    localStorage.removeItem('predictionType');
+                }, 2700000); // 2 minutes
+
+                btnText.style.display = 'none';
+                loadingSpinner.style.display = 'inline-block';
+                document.querySelectorAll('.prediction-btn').forEach(btn => btn.disabled = true);
+
+                // Submit the form
+                this.closest('form').submit();
+            });
+        }
+    });
+
+</script>
+
+<style>
+    /* General page styling */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #202223;
+        color: #2c3e50;
+        margin: 0;
+        padding: 0;
+    }
+
+    .prediction-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border: none;
+        background-color: #2b8bf3;
+        color: white;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 10px 10px 0 0;
+        transition: background-color 0.3s ease;
+    }
+
+    .prediction-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .prediction-btn:disabled {
+        background-color: #bdc3c7;
+        cursor: not-allowed;
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0056b3;
+        border-right: 3px solid #ffffff;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Prediction Section */
+    .prediction-section {
+        margin-top: 30px;
+        background-color: #ffffff;
+        padding: 25px 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .prediction-section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+
+    /* Table Styles */
+    .prediction-section table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .prediction-section th,
+    .prediction-section td {
+        border: 1px solid #dfe6e9;
+        padding: 12px;
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    .prediction-section th {
+        background-color: #ecf0f1;
+        /* background-color: #202223; */
+        /* color: #e2e8ed; */
+        font-weight: 600;
+    }
+
+    .prediction-section td {
+        background-color: #ffffff;
+    }
+
+    /* Messages */
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+    }
+
+    .messages li {
+        background-color: #dff0d8;
+        border: 1px solid #c2e0c6;
+        padding: 12px;
+        border-radius: 5px;
+        color: #3c763d;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+
+    .action-btn {
+        padding: 12px 25px;
+        display: block;
+        /* margin: 20px auto; */
+        font-size: 1rem;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        height: 43px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        /* background: linear-gradient(to right, #0056b3, #0090c6);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); */
+        background-color: #c0392b;
+    }
+</style>
+
+{% endblock %}

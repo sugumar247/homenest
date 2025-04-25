@@ -1,0 +1,404 @@
+<!-- templates/dashboard/base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}Dashboard{% endblock title %}</title>
+    <style>
+        /* styles.css */
+
+        /* Reset margin and padding */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+        }
+
+        /* Fixed Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #4CAF50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+            z-index: 1100;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        #sidebarToggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 10px;
+            display: none;
+            transition: color 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        #sidebarToggle:hover {
+            color: #d32f2f;
+        }
+
+        .header .logout-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-right: 40px;
+            flex-shrink: 0;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 10px 15px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .header .logout-btn {
+                padding: 6px 10px;
+                font-size: 14px;
+                margin-right: 40px;
+            }
+        }
+
+        /* Main container */
+        .container {
+            display: flex;
+            min-height: 100vh;
+            margin-top: 50px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: #13161a;
+            color: #fff;
+            padding-top: 0;
+            height: calc(100vh - 50px);
+            position: fixed;
+            top: 50px;
+            left: 0;
+            margin-top: 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+
+        /* Sidebar Resizing */
+        .sidebar .resize-handle {
+            position: absolute;
+            right: -5px;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+            background-color: #000000;
+            transition: background-color 0.3s ease, width 0.3s ease;
+        }
+
+        .sidebar .resize-handle:hover{
+            background-color: #555;
+            width: 10px;
+        }
+
+        .sidebar .resize-handle:active{
+            background-color: #555;
+            cursor: ew-resize;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            margin: 5px 0;
+        }
+
+        .sidebar ul li a {
+            color: #bdc3c7;
+            text-decoration: none;
+            display: block;
+            padding: 15px 20px;
+            font-weight: bold;
+            transition: background-color 0.3s, padding-left 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #34495e;
+            padding-left: 30px;
+            color: #fff;
+            border-left: 3px solid #1abc9c;
+        }
+
+        .sidebar ul li a.active {
+            background-color: #34495e;
+            padding-left: 30px;
+            color: #fff;
+            border-left: 3px solid #1abc9c;
+        }
+
+        /* Main content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            width: calc(100% - 250px);
+            overflow-y: auto;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+
+        /* Sidebar Links */
+        .sidebar ul li a {
+            color: #bdc3c7;
+            text-decoration: none;
+            display: block;
+            padding: 15px 20px;
+            font-weight: bold;
+            transition: background-color 0.3s, padding-left 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #34495e;
+            padding-left: 30px;
+            color: #fff;
+            border-left: 3px solid #1abc9c;
+        }
+
+        /* Active Link */
+        .sidebar ul li a.active {
+            background-color: #34495e;
+            padding-left: 30px;
+            color: #fff;
+            border-left: 3px solid #1abc9c;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                width: 200px;
+                height: 100vh;
+                top: 80px;
+                background-color: #13161a;
+                box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+                overflow-y: auto;
+                transition: left 0.3s ease;
+                z-index: 1001;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 10px;
+                width: 100%;
+            }
+        }
+
+        /* Additional mobile responsive styles */
+        @media (max-width: 480px) {
+            body {
+                font-size: 14px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+                padding: 10px;
+                text-align: center;
+            }
+
+            .header .logout-btn {
+                padding: 6px 10px;
+                margin-right: 30px;
+                font-size: 14px;
+            }
+
+            .sidebar {
+                width: 160px;
+                left: -160px;
+                height: 100vh;
+                position: fixed;
+                top: 65px;
+                box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+                overflow-y: auto;
+                transition: left 0.3s ease;
+                z-index: 1001;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .sidebar ul li a {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 10px;
+                width: 100%;
+            }
+
+            .resize-handle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <button id="sidebarToggle" aria-label="Toggle sidebar" style="background:none; border:none; color:white; font-size:24px; cursor:pointer; margin-right:10px; display:none;">
+            &#9776;
+        </button>
+        <h1>Admin Dashboard for furniture shopping app</h1>
+        <a href="{% url 'admin_logout' %}" class="logout-btn">Logout</a>
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <ul>
+                <li>
+                    <a href="{% url 'dashboard_overview' %}"
+                        class="{% if request.resolver_match.url_name == 'dashboard_overview' %}active{% endif %}">
+                        Dashboard Overview
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'stock_prediction' %}"
+                        class="{% if request.resolver_match.url_name == 'stock_prediction' %}active{% endif %}">
+                        Stock Prediction
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'stock_management' %}"
+                        class="{% if request.resolver_match.url_name == 'stock_management' %}active{% endif %}">
+                        Stock Management
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'reports_analytics' %}"
+                        class="{% if request.resolver_match.url_name == 'reports_analytics' %}active{% endif %}">
+                        Reports & Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'add_new_products' %}"
+                        class="{% if request.resolver_match.url_name == 'add_new_products' %}active{% endif %}">
+                        Add New Products
+                    </a>
+                </li>
+            </ul>
+            <div class="resize-handle"></div> <!-- Resizing handle -->
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        // JavaScript to handle sidebar resizing
+        const sidebar = document.querySelector('.sidebar');
+        const resizeHandle = document.querySelector('.resize-handle');
+        let isResizing = false;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+            });
+        });
+
+        function handleMouseMove(e) {
+            if (isResizing) {
+                const newWidth = e.clientX;
+                if (newWidth >= 150 && newWidth <= 400) {  // Set min and max width
+                    sidebar.style.width = newWidth + 'px';
+                    document.querySelector('.main-content').style.marginLeft = newWidth + 'px';
+                    document.querySelector('.main-content').style.width = `calc(100% - ${newWidth}px)`;
+                }
+            }
+        }
+
+        // Sidebar toggle for mobile
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            if (sidebar.classList.contains('active')) {
+                sidebarToggle.innerHTML = '×';
+            } else {
+                sidebarToggle.innerHTML = '☰';
+            }
+        });
+
+        // Show toggle button on small screens
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                sidebarToggle.style.display = 'block';
+            } else {
+                sidebarToggle.style.display = 'none';
+                sidebar.classList.remove('active');
+                sidebarToggle.innerHTML = '☰'; // Reset to hamburger on resize
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('load', handleResize);
+    </script>
+
+    {% block extra_js %}
+    {% endblock %}
+</body>
+
+</html>
